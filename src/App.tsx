@@ -281,6 +281,7 @@ export default function App() {
     }
 
     setInput("");
+    if (textareaRef.current) { textareaRef.current.style.height = "auto"; }
     const newMessages: Message[] = [...messages, { role: "user", content: text }];
     setMessages(newMessages);
     setLoading(true);
@@ -335,7 +336,16 @@ export default function App() {
     }
   }
 
-  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function autoResize() {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  }
+
+  function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   }
 
@@ -566,25 +576,30 @@ export default function App() {
       </div>
 
       {/* ── Input row ── */}
-      <div style={{ padding: 12, display: "flex", gap: 8, alignItems: "center" }}>
-        <input
-          type="text"
+      <div style={{ padding: 12, display: "flex", gap: 8, alignItems: "flex-end" }}>
+        <textarea
+          ref={textareaRef}
+          rows={1}
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={e => { setInput(e.target.value); autoResize(); }}
           onKeyDown={handleKey}
-          placeholder={apiKey ? "Type your answer, question, or code..." : "Enter your OpenRouter key above to start →"}
+          placeholder={apiKey ? "Type your answer or code… (Shift+Enter for newline)" : "Enter your OpenRouter key above to start →"}
           style={{
             flex:         1,
             fontFamily:   "var(--font-mono)",
             fontSize:     13,
             padding:      "9px 13px",
-            height:       40,
+            minHeight:    40,
+            maxHeight:    160,
             background:   D.surface2,
             border:       `1px solid ${apiKey ? D.border : D.warnBorder}`,
             borderRadius:  10,
             color:        D.text,
             outline:      "none",
             opacity:      apiKey ? 1 : 0.6,
+            resize:       "none",
+            overflowY:    "auto",
+            lineHeight:   1.5,
           }}
         />
         <button
