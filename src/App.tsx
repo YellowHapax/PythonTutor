@@ -242,6 +242,10 @@ export default function App() {
   const [keyDraft, setKeyDraft]   = useState("");
   const [showKeyInput, setShowKeyInput] = useState(false);
 
+  // Cost tracking (Claude Sonnet 4.5: $3/1M input, $15/1M output)
+  const [sessionUsage, setSessionUsage] = useState({ input: 0, output: 0 });
+  const sessionCost = (sessionUsage.input * 3 + sessionUsage.output * 15) / 1_000_000;
+
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -309,6 +313,14 @@ export default function App() {
 
       const data = await res.json();
 
+      // Accumulate token usage for cost display
+      if (data.usage) {
+        setSessionUsage(prev => ({
+          input:  prev.input  + (data.usage.prompt_tokens     ?? 0),
+          output: prev.output + (data.usage.completion_tokens ?? 0),
+        }));
+      }
+
       // OpenRouter surfaces API errors in data.error
       const reply: string =
         data.choices?.[0]?.message?.content ??
@@ -322,8 +334,8 @@ export default function App() {
       if (newStage !== stage) {
         setTimeout(() => {
           setStage(newStage);
-          setMessages(prev => [
-            ...prev,
+          // Start fresh — prior stage Q&A is no longer relevant context
+          setMessages([
             { role: "assistant", content: STAGE_INTROS[newStage], stageChange: true, stageNum: newStage },
           ]);
         }, 400);
@@ -481,8 +493,16 @@ export default function App() {
             ))}
           </div>
 
-          {/* API key widget */}
+          {/* API key widget + cost badge */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            {sessionCost > 0 && (
+              <span
+                title={`~${sessionUsage.input.toLocaleString()} in / ${sessionUsage.output.toLocaleString()} out tokens`}
+                style={{ fontSize: 11, color: D.hint, fontFamily: "var(--font-mono)", whiteSpace: "nowrap", cursor: "default" }}
+              >
+                ~${sessionCost < 0.0001 ? "<0.0001" : sessionCost.toFixed(4)}
+              </span>
+            )}
             {showKeyInput ? (
               <>
                 <input
