@@ -346,7 +346,74 @@ export default function App() {
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+    const el = e.currentTarget;
+
+    // Plain Enter → send
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+      return;
+    }
+
+    // Shift+Enter → newline with auto-indent
+    if (e.key === "Enter" && e.shiftKey) {
+      e.preventDefault();
+      const { selectionStart, selectionEnd, value } = el;
+      // Find indentation of current line
+      const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+      const indent = value.slice(lineStart).match(/^[ \t]*/)?.[0] ?? "";
+      const newValue =
+        value.slice(0, selectionStart) + "\n" + indent + value.slice(selectionEnd);
+      setInput(newValue);
+      // Restore cursor after indent
+      const newCursor = selectionStart + 1 + indent.length;
+      requestAnimationFrame(() => {
+        el.selectionStart = newCursor;
+        el.selectionEnd   = newCursor;
+        autoResize();
+      });
+      return;
+    }
+
+    // Tab → insert 4 spaces (or dedent with Shift+Tab)
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const { selectionStart, selectionEnd, value } = el;
+
+      if (!e.shiftKey) {
+        // Indent: insert 4 spaces at cursor (or at start of each selected line)
+        if (selectionStart === selectionEnd) {
+          const newValue = value.slice(0, selectionStart) + "    " + value.slice(selectionEnd);
+          setInput(newValue);
+          requestAnimationFrame(() => {
+            el.selectionStart = selectionStart + 4;
+            el.selectionEnd   = selectionStart + 4;
+          });
+        } else {
+          // Multi-line selection: indent each line
+          const before   = value.slice(0, selectionStart);
+          const selected = value.slice(selectionStart, selectionEnd);
+          const after    = value.slice(selectionEnd);
+          const indented = selected.replace(/^/gm, "    ");
+          setInput(before + indented + after);
+          requestAnimationFrame(() => {
+            el.selectionStart = selectionStart;
+            el.selectionEnd   = selectionEnd + (indented.length - selected.length);
+          });
+        }
+      } else {
+        // Shift+Tab: remove up to 4 spaces from start of each selected line
+        const before   = value.slice(0, selectionStart);
+        const selected = value.slice(selectionStart, selectionEnd);
+        const after    = value.slice(selectionEnd);
+        const dedented = selected.replace(/^ {1,4}/gm, "");
+        setInput(before + dedented + after);
+        requestAnimationFrame(() => {
+          el.selectionStart = selectionStart;
+          el.selectionEnd   = selectionEnd - (selected.length - dedented.length);
+        });
+      }
+    }
   }
 
   function goToStage(i: number) {
