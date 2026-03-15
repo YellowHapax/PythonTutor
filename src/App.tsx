@@ -352,13 +352,29 @@ export default function App() {
   return (
     <div
       style={{
+        minHeight:      "100vh",
+        display:        "flex",
+        alignItems:     "center",
+        justifyContent: "center",
+        background:     D.bg,
+        padding:        "24px 16px",
+      }}
+    >
+    <div
+      style={{
         display:       "flex",
         flexDirection: "column",
-        height:        "100vh",
-        maxHeight:     700,
+        width:         "100%",
+        maxWidth:      860,
+        height:        "90vh",
+        maxHeight:     760,
         background:    D.bg,
         color:         D.text,
         fontFamily:    "var(--font-sans)",
+        borderRadius:  16,
+        border:        `1px solid ${D.border}`,
+        overflow:      "hidden",
+        boxShadow:     "0 8px 40px rgba(0,0,0,0.5)",
       }}
     >
       {/* ── Header: stage tabs + key widget ── */}
@@ -589,6 +605,7 @@ export default function App() {
           Send
         </button>
       </div>
+    </div>
     </div>
   );
 }
